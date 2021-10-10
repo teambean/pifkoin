@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2012 Dave Pifke.
+# Copyright (c) Bean Core www.beancash.org
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -21,7 +22,7 @@
 # IN THE SOFTWARE.
 #
 
-"""Utilities for parsing and interacting with the Bitcoin blockchain."""
+"""Utilities for parsing and interacting with the Bean Cash blockchain."""
 
 import binascii
 import contextlib
@@ -29,7 +30,7 @@ import datetime
 import decimal
 import hashlib
 import inspect
-import pifkoin.bitcoind
+import pifkoin.beancashd
 import pifkoin.sha256
 import socket
 import struct
@@ -134,31 +135,31 @@ class BlockHeader(object):
     PARAMETERS = ('height', 'version', 'previousblockhash', 'merkleroot', 'time', 'bits', 'nonce', 'hash')
 
     @staticmethod
-    def _get_bitcoind(**bitcoind_args):
+    def _get_beancashd(**beancashd_args):
         """
-        Returns a connection to bitcoind.  The caller can specify an existing
+        Returns a connection to Beancashd.  The caller can specify an existing
         connection to use, or one will be created.
 
-        :param bitcoind:
+        :param beancashd:
             The existing connection to use.  Must be the only argument if
             present.  If omitted, any remaining arguments will be passed to
-            the bitcoind constructor.
+            the beancashd constructor.
 
         """
 
-        if 'bitcoind' in bitcoind_args:
-            conn = pifkoin.bitcoind.args.pop('bitcoind')
-            assert not bitcoind_args, 'Can specify bitcoind connection or options, not both'
+        if 'beancashd' in beancashd_args:
+            conn = pifkoin.beancashd.args.pop('beancashd')
+            assert not beancashd_args, 'Can specify beancashd connection or options, not both'
         else:
-            conn = pifkoin.bitcoind.Bitcoind(**bitcoind_args)
+            conn = pifkoin.beancashd.beancashd(**beancashd_args)
 
         return conn
 
     @classmethod
-    def from_blockchain(cls, height=None, hash=None, **bitcoind_args):
+    def from_blockchain(cls, height=None, hash=None, **beancashd_args):
         """
         Static factory method that returns a new object instance for the
-        specified block, which will be retrieved from the running bitcoind.
+        specified block, which will be retrieved from the running beancashd.
 
         :param height:
             The block number to return.  If negative, is regarded as an offset
@@ -172,7 +173,7 @@ class BlockHeader(object):
 
         assert height or hash, 'Must specify either height or hash'
 
-        conn = cls._get_bitcoind(**bitcoind_args)
+        conn = cls._get_beancashd(**beancashd_args)
 
         # Look up the block hash if not specified in the method args
         h = hash
@@ -203,15 +204,15 @@ class BlockHeader(object):
         ]))
 
     @classmethod
-    def from_getwork(cls, **bitcoind_args):
+    def from_getwork(cls, **beancashd_args):
         """
         Static factory method which returns a new object instance based upon
-        a getwork request to the running bitcoind.
+        a getwork request to the running beancashd.
         """
 
         # The byte ordering returned from getwork is bizarre.  You have to
         # reverse the byte order of every 4-byte word.
-        hexdata = cls._get_bitcoind(**bitcoind_args).getwork()['data']
+        hexdata = cls._get_beancashd(**beancashd_args).getwork()['data']
         return cls.from_bytes(b''.join([
             binascii.unhexlify(hexdata[i:i+8])[::-1]
             for i in xrange(0, len(hexdata), 8)
@@ -254,7 +255,7 @@ class BlockHeader(object):
     def _cond_unhexlify(value):
         """
         Un-"hexlifies" a value, but only if it is a string or unicode instance.
-        Used for converting values returned in hex format from the bitcoind
+        Used for converting values returned in hex format from the beancashd
         JSON-RPC calls.
         """
 

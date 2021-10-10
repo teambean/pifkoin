@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2012 Dave Pifke.
+# Copyright (c) 2021 Bean Core www.beancash.org
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -21,7 +22,7 @@
 # IN THE SOFTWARE.
 #
 
-"""JSON-RPC implementation for talking to bitcoind."""
+"""JSON-RPC implementation for talking to Beancashd."""
 
 import base64
 import collections
@@ -37,21 +38,21 @@ import socket
 import sys
 import time
 
-logger = logging.getLogger('bitcoin')
+logger = logging.getLogger('beancash')
 
 
-class BitcoindException(Exception):
-    """Exception thrown for errors talking to bitcoind."""
+class BeancashdException(Exception):
+    """Exception thrown for errors talking to Beancashd."""
 
     def __init__(self, value):
         """Constructor which also logs the exception."""
 
-        super(BitcoindException, self).__init__(value)
+        super(BeancashdException, self).__init__(value)
         logger.error(value)
 
 
-class BitcoindCommand(object):
-    """Callable object representing a bitcoind JSON-RPC method."""
+class BeancashdCommand(object):
+    """Callable object representing a Beancashd JSON-RPC method."""
 
     def __init__(self, method, server=None):
         """Constructor."""
@@ -64,22 +65,22 @@ class BitcoindCommand(object):
 
         server = self.server
         if not server:
-            server = Bitcoind()
+            server = Beancashd()
 
         return server._rpc_call(self.method, *args)
 
 
-class Bitcoind(object):
+class Beancashd(object):
     """
-    JSON-RPC wrapper for talking to bitcoind.  Methods of instances of this
-    object correspond to server commands, e.g. ``Bitcoind().getnewaddress()``.
+    JSON-RPC wrapper for talking to Beancashd.  Methods of instances of this
+    object correspond to server commands, e.g. ``beancashd().getnewaddress()``.
     """
 
-    DEFAULT_CONFIG_FILENAME = '~/.bitcoin/bitcoin.conf'
+    DEFAULT_CONFIG_FILENAME = '~/.BitBean/Beancash.conf'
 
     def _parse_config(self, filename=DEFAULT_CONFIG_FILENAME, no_cache=False, **options):
         """
-        Returns an OrderedDict with the Bitcoin server configuration.
+        Returns an OrderedDict with the Beancash server configuration.
 
         Errors are logged; if the configuration file does not exist or could
         not be read, an empty dictionary will be returned; it's up to the
@@ -87,7 +88,7 @@ class Bitcoind(object):
 
         :param filename:
             The filename from which the configuration should be read.  Defaults
-            to ``~/.bitcoin/bitcoin.conf``.
+            to ``~/.BitBean/Beancash.conf``.
 
         :param no_cache:
             If :const:`True`, the configuration will not be memoized and any
@@ -146,7 +147,7 @@ class Bitcoind(object):
 
     def __init__(self, config_filename=DEFAULT_CONFIG_FILENAME, **config_options):
         """
-        Constructor.  Parses RPC communication details from ``bitcoin.conf``
+        Constructor.  Parses RPC communication details from ``Beancash.conf``
         and opens a connection to the server.
         """
 
@@ -155,19 +156,19 @@ class Bitcoind(object):
         try:
             self._rpc_auth = base64.b64encode(':'.join((config['rpcuser'], config['rpcpassword'])).encode('utf8')).decode('utf8')
         except:
-            raise BitcoindException('Unable to read RPC credentials from %s' % config_filename)
+            raise BeancashdException('Unable to read RPC credentials from %s' % config_filename)
 
         self._rpc_host = config.get('rpcserver', '127.0.0.1')
         try:
             socket.gethostbyname(self._rpc_host)
         except socket.error as e:
-            raise BitcoindException('Invalid RPC server %s: %s' % (self._rpc_host, str(e)))
+            raise BeancashdException('Invalid RPC server %s: %s' % (self._rpc_host, str(e)))
 
         try:
-            self._rpc_port = int(config.get('rpcport', 8332))
+            self._rpc_port = int(config.get('rpcport', 22461))
             timeout = int(config.get('rpctimeout', 30))
         except ValueError:
-            raise BitcoindException('Error parsing RPC connection information from %s' % config_filename)
+            raise BeancashdException('Error parsing RPC connection information from %s' % config_filename)
 
         if config.get('rpcssl', '').lower() in ('1', 'yes', 'true', 'y', 't'):
             logger.debug('Making HTTPS connection to %s:%d', self._rpc_host, self._rpc_port)
@@ -184,12 +185,12 @@ class Bitcoind(object):
         of a JSON-RPC method.
         """
 
-        return BitcoindCommand(method, self)
+        return BeancashdCommand(method, self)
 
     def _rpc_call(self, method, *args):
         """Performs a JSON-RPC command on the server and returns the result."""
 
-        # The bitcoin protocol specifies a incrementing sequence for each
+        # The Bean Cash protocol specifies a incremental sequence for each
         # command.
         self._rpc_id += 1
 
@@ -214,77 +215,77 @@ class Bitcoind(object):
         start = time.time()
         response = self._rpc_conn.getresponse()
         if not response:
-            raise BitcoindException('No response from bitcoind')
+            raise BeancashdException('No response from Beancashd')
         if response.status != 200:
-            raise BitcoindException('%d (%s) response from bitcoind' % (response.status, response.reason))
+            raise BeancashdException('%d (%s) response from Beancashd' % (response.status, response.reason))
 
         response_body = response.read().decode('utf8')
         logger.debug('Got %d byte response from server in %d ms', len(response_body), (time.time() - start) * 1000.0)
         try:
             response_json = json.loads(response_body, parse_float=decimal.Decimal)
         except ValueError as e:
-            raise BitcoindException('Error parsing bitcoind response: %s' % str(e))
+            raise BeancashdException('Error parsing Beancashd response: %s' % str(e))
 
         if response_json.get('error'):
-            raise BitcoindException(response_json['error'])
+            raise BeancashdException(response_json['error'])
         elif 'result' in response_json:
             return response_json['result']
         else:
-            raise BitcoindException('Invalid response from bitcoind')
+            raise BeancashdException('Invalid response from Beancashd')
 
 
-# There are two ways to use this module: either instantiate a Bitcoind and
+# There are two ways to use this module: either instantiate a Beancashd and
 # call the JSON-RPC methods as methods of the instance, or use the
 # module-level shortcuts below.  The former reuses the same connection,
 # while the latter creates a new connection on each call.  The latter is also
 # dependent upon the following list being up-to-date.
-addmultisigaddress = BitcoindCommand('addmultisigaddress')
-backupwallet = BitcoindCommand('backupwallet')
-dumpprivkey = BitcoindCommand('dumpprivkey')
-encryptwallet = BitcoindCommand('encryptwallet')
-getaccount = BitcoindCommand('getaccount')
-getaccountaddress = BitcoindCommand('getaccountaddress')
-getaddressesbyaccount = BitcoindCommand('getaddressesbyaccount')
-getbalance = BitcoindCommand('getbalance')
-getblock = BitcoindCommand('getblock')
-getblockcount = BitcoindCommand('getblockcount')
-getblockhash = BitcoindCommand('getblockhash')
-getconnectioncount = BitcoindCommand('getconnectioncount')
-getdifficulty = BitcoindCommand('getdifficulty')
-getgenerate = BitcoindCommand('getgenerate')
-gethashespersec = BitcoindCommand('gethashespersec')
-getinfo = BitcoindCommand('getinfo')
-getmemorypool = BitcoindCommand('getmemorypool')
-getmininginfo = BitcoindCommand('getmininginfo')
-getnewaddress = BitcoindCommand('getnewaddress')
-getreceivedbyaccount = BitcoindCommand('getreceivedbyaccount')
-getreceivedbyaddress = BitcoindCommand('getreceivedbyaddress')
-gettransaction = BitcoindCommand('gettransaction')
-getwork = BitcoindCommand('getwork')
-help = BitcoindCommand('help')
-importprivkey = BitcoindCommand('importprivkey')
-keypoolrefill = BitcoindCommand('keypoolrefill')
-listaccounts = BitcoindCommand('listaccounts')
-listreceivedbyaccount = BitcoindCommand('listreceivedbyaccount')
-listreceivedbyaddress = BitcoindCommand('listreceivedbyaddress')
-listsinceblock = BitcoindCommand('listsinceblock')
-listtransactions = BitcoindCommand('listtransactions')
-move = BitcoindCommand('move')
-sendfrom = BitcoindCommand('sendfrom')
-sendmany = BitcoindCommand('sendmany')
-sendtoaddress = BitcoindCommand('sendtoaddress')
-setaccount = BitcoindCommand('setaccount')
-setgenerate = BitcoindCommand('setgenerate')
-settxfee = BitcoindCommand('settxfee')
-signmessage = BitcoindCommand('signmessage')
-stop = BitcoindCommand('stop')
-validateaddress = BitcoindCommand('validateaddress')
-verifymessage = BitcoindCommand('verifymessage')
+addmultisigaddress = BeancashdCommand('addmultisigaddress')
+backupwallet = BeancashdCommand('backupwallet')
+dumpprivkey = BeancashdCommand('dumpprivkey')
+encryptwallet = BeancashdCommand('encryptwallet')
+getaccount = BeancashdCommand('getaccount')
+getaccountaddress = BeancashdCommand('getaccountaddress')
+getaddressesbyaccount = BeancashdCommand('getaddressesbyaccount')
+getbalance = BeancashdCommand('getbalance')
+getblock = BeancashdCommand('getblock')
+getblockcount = BeancashdCommand('getblockcount')
+getblockhash = BeancashdCommand('getblockhash')
+getconnectioncount = BeancashdCommand('getconnectioncount')
+getdifficulty = BeancashdCommand('getdifficulty')
+# getgenerate = BeancashdCommand('getgenerate')
+# gethashespersec = BeancashdCommand('gethashespersec')
+getinfo = BeancashdCommand('getinfo')
+# getmemorypool = BeancashdCommand('getmemorypool')
+getmininginfo = BeancashdCommand('getmininginfo')
+getnewaddress = BeancashdCommand('getnewaddress')
+getreceivedbyaccount = BeancashdCommand('getreceivedbyaccount')
+getreceivedbyaddress = BeancashdCommand('getreceivedbyaddress')
+gettransaction = BeancashdCommand('gettransaction')
+getwork = BeancashdCommand('getwork')
+help = BeancashdCommand('help')
+importprivkey = BeancashdCommand('importprivkey')
+keypoolrefill = BeancashdCommand('keypoolrefill')
+listaccounts = BeancashdCommand('listaccounts')
+listreceivedbyaccount = BeancashdCommand('listreceivedbyaccount')
+listreceivedbyaddress = BeancashdCommand('listreceivedbyaddress')
+listsinceblock = BeancashdCommand('listsinceblock')
+listtransactions = BeancashdCommand('listtransactions')
+move = BeancashdCommand('move')
+sendfrom = BeancashdCommand('sendfrom')
+sendmany = BeancashdCommand('sendmany')
+sendtoaddress = BeancashdCommand('sendtoaddress')
+setaccount = BeancashdCommand('setaccount')
+# setgenerate = BeancashdCommand('setgenerate')
+settxfee = BeancashdCommand('settxfee')
+signmessage = BeancashdCommand('signmessage')
+stop = BeancashdCommand('stop')
+validateaddress = BeancashdCommand('validateaddress')
+verifymessage = BeancashdCommand('verifymessage')
 
 
 if __name__ == '__main__':
     logging.basicConfig()
-    # Uncomment for verbosity:
+    # Un-comment for verbosity:
     #logging.getLogger().setLevel(logging.DEBUG)
 
     if len(sys.argv) > 1:
@@ -293,8 +294,8 @@ if __name__ == '__main__':
         method_name = 'help'
 
     try:
-        print(getattr(Bitcoind(), method_name)(*sys.argv[2:]))
-    except BitcoindException:
+        print(getattr(Beancashd(), method_name)(*sys.argv[2:]))
+    except BeancashdException:
         sys.exit(1)
     else:
         sys.exit(0)
