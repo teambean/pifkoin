@@ -1,2 +1,4 @@
 include README.md
 include COPYING.txt
+include Readme.rst
+include readme.html

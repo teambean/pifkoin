@@ -1,50 +1,50 @@
 Pifke's Bitcoin API
 ===================
 
-This module provides a Python API for Bitcoin mining and research.
+This module provides a Python API for Bean Cash Sprouting and research.
 
 JSON-RPC Client
 ---------------
 
-Provided here is yet another JSON-RPC client for talking to a running Bitcoin
+Provided here is yet another JSON-RPC client for talking to a running Bean Cash
 daemon.  Example usage:
 
 ```python
-from pifkoin import bitcoind
+from pifkoin import beancashd
 
-bitcoind.getnewaddress() # returns '1GWgcCuuXXZhtmLpofNeNV9sVEXSxCxAM7'
+beancashd.getnewaddress() # returns '2GWgcCuuXXZhtmLpofNeNV9sVEXSxCxAM7'
 ```
 
 It will automatically read the RPC connection information from
-`~/.bitcoin/bitcoin.conf` and establish a new connection to the running
-`bitcoind` daemon.
+`~/.BitBean/Beancash.conf` and establish a new connection to the running
+`Beancashd` daemon.
 
 Python's standard `logging` module is used for logging, and most error
-conditions will result in a `BitcoindException` with a description of the
+conditions will result in a `BeancashdException` with a description of the
 issue.
 
 To re-use the same connection between commands, or to specify an alternate
 location for the configuration file, use:
 
 ```python
-from pifkoin.bitcoind import Bitcoind, BitcoindException
+from pifkoin.beancashd import Beancashd, BeancashdException
 
-conn = Bitcoind('/foo/bitcoind.conf') # filename is optional
-conn.getnewaddress() # returns '1ESa86bBU7CERCQE4VzWBZfwc1LjoW2FnH'
-conn.nonexistantcommand() # raises BitcoindException
+conn = Beancashd('/foo/Beancash.conf') # filename is optional
+conn.getnewaddress() # returns '2ESa86bBU7CERCQE4VzWBZfwc1LjoW2FnH'
+conn.nonexistantcommand() # raises BeancashdException
 ```
 
 The latter method of operation can also be used for JSON-RPC methods not
 explicitly listed in the module, for instance when talking to an alternate
 implementation such as `namecoind`.
 
-When instantiating `Bitcoind` yourself, you can override options from the
+When instantiating `Beancashd` yourself, you can override options from the
 configuration file by passing them to the constructor:
 
 ```python
-from pifkoin.bitcoind import Bitcoind
+from pifkoin.beancashd import Beancashd
 
-conn = Bitcoind(rpcuser='foo', rpcpassword='bar')
+conn = Beancashd(rpcuser='foo', rpcpassword='bar')
 ```
 
 Blockchain Tools
@@ -73,7 +73,7 @@ bh = BlockHeader.from_getwork()
 
 `BlockHeader` instances contain properties and methods for converting between
 various formats.  For instance, to get the binary string that is hashed as
-part of the mining operation:
+part of the Sprouting operation:
 
 ```python
 from pifkoin.blockchain import BlockHeader

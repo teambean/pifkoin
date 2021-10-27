@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2012 Dave Pifke.
+# Copyright (c) 2021 Bean Core www.beancash.org
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -30,12 +31,12 @@ setup(name='pifkoin',
       packages=['pifkoin'],
       package_dir={'pifkoin': 'python'},
       version=os.environ['VERSION'],
-      description='Bitcoin utilities',
+      description='Bean Cash utilities',
       author='Dave Pifke',
       author_email='dave@pifke.org',
       url='http://pifke.org/pifkoin',
-      download_url='http://pifke.org/pifkoin/pifkoin-0.1.tar.gz',
-      keywords=['bitcoin'],
+      download_url='https://www.beancash.org/downloads/pifkoin-0.1.1.tar.gz',
+      keywords=['beancash'],
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',

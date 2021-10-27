@@ -1,4 +1,4 @@
-VERSION=0.1
+VERSION=0.11
 TGZ=dist/pifkoin-$(VERSION).tar.gz
 DEB=deb_dist/python-pifkoin_$(VERSION)-1_all.deb
 
